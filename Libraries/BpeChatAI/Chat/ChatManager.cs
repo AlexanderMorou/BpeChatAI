@@ -17,6 +17,17 @@ public class ChatManager
     /// <summary>The parameters to use for the next API call.</summary>
     public CompletionParameters Parameters { get; private set; }
 
+    /// <summary><para>Gets or sets whether the chat session is moderated.</para>
+    /// <para>It's recommended that you set this to <see langword="true"/> for
+    /// unstructured chat sessions.</para>
+    /// <para>Examples of software that may be okay without moderation:
+    /// Personal projects that are not publicly accessible, or chat sessions
+    /// that are limited to a small group of people who are aware of the
+    /// need to self-filter their commentary.</para>
+    /// <para>The decision to use or omit moderation is the responsibility
+    /// of the developer using this package.</para></summary>
+    public bool IsModerated { get; set; } = true;
+
     /// <summary>Occurs when a streaming token is received.</summary>
     public event EventHandler<StreamTokenReceivedEventArgs>? StreamTokenReceived;
 
@@ -93,7 +104,6 @@ public class ChatManager
         }
         return response;
     }
-
 
     /// <summary>
     /// <para>Posts the <see cref="Parameters"/> to the OpenAI Chat Completion
