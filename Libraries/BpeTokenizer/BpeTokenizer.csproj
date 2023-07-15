@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <Platforms>x64</Platforms>
+        <PackageId>BpeTokenizer</PackageId>
+        <Version>1.0.3</Version>
+        <Authors>Allen Clark Copeland, Jr.</Authors>
+        <Product>BpeChatAI</Product>
+        <Configurations>Debug;Release;ReleaseWithNuget</Configurations>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/AlexanderMorou/BpeChatAI</RepositoryUrl>
+        <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
+        <PackageReleaseNotes>Noticed that the package was built without optimizations.</PackageReleaseNotes>
+        <PackageTags>BytePairEncoding;BPE;OpenAI;tiktoken;.NET</PackageTags>
+        <IncludeSymbols>True</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <DefineConstants>$(DefineConstants);x64</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <DefineConstants>$(DefineConstants);x64</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseWithNuget|x64'">
+      <DefineConstants>$(DefineConstants);x64</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='ReleaseWithNuget'">
+      <Optimize>True</Optimize>
+    </PropertyGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="py_printable.blob.gz" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Update="ReadMe.md">
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+    </ItemGroup>
+</Project>

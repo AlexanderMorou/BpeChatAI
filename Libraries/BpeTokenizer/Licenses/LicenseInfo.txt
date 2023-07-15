@@ -1,0 +1,3 @@
+﻿Licenses:
+
+1. tiktoken (converted from rust+python) is under the MIT license. See the MIT.txt file for details.

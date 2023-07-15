@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32516.85
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{AB3C376A-7F38-479C-981A-CA53B7201411}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BpeTokenizer", "Libraries\BpeTokenizer\BpeTokenizer.csproj", "{56A49866-1257-4FE8-BC12-1DD22E86ADD6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BpeChatAI", "Libraries\BpeChatAI\BpeChatAI.csproj", "{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B1FCCF32-BA89-466A-A95E-F2D7DD990B76}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+		ReleaseWithNuget|x64 = ReleaseWithNuget|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.Debug|x64.ActiveCfg = Debug|x64
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.Debug|x64.Build.0 = Debug|x64
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.Release|x64.ActiveCfg = Release|x64
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.Release|x64.Build.0 = Release|x64
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.ReleaseWithNuget|x64.ActiveCfg = ReleaseWithNuget|x64
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6}.ReleaseWithNuget|x64.Build.0 = ReleaseWithNuget|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.Debug|x64.ActiveCfg = Debug|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.Debug|x64.Build.0 = Debug|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.Release|x64.ActiveCfg = Release|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.Release|x64.Build.0 = Release|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.ReleaseWithNuget|x64.ActiveCfg = ReleaseWithNuget|x64
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7}.ReleaseWithNuget|x64.Build.0 = ReleaseWithNuget|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{56A49866-1257-4FE8-BC12-1DD22E86ADD6} = {AB3C376A-7F38-479C-981A-CA53B7201411}
+		{8ABE53B6-36B3-4624-B85B-1B8D13B65CA7} = {AB3C376A-7F38-479C-981A-CA53B7201411}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CC067139-FD41-4E90-BA86-D9006FE066F6}
+	EndGlobalSection
+EndGlobal
