@@ -162,16 +162,21 @@ public partial class OpenAIApis
         return openAIModelInfoEx;
     }
 
-    /// <summary><para>Calls the OpenAI chat completion endpoint with the <paramref name="parameters"/> and <paramref name="cancellationToken"/> provided.</para>
-    /// <para>Explicitly sets <see cref="CompletionParameters.Stream"/> to <see langword="false"/>.</para>
-    /// </summary>
-    /// <param name="parameters">The <see cref="CompletionParameters"/> which detail the request to be made.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> which can be used to cancel the request.</param>
-    /// <returns><para>A <see cref="CompletionResponseWithCost"/> which contains the <see cref="CompletionResponse"/> and the cost of the request.</para>
-    /// </returns>
-    public async Task<CompletionResponseWithCost> CallChatAsync
-    ( CompletionParameters parameters
-    , CancellationToken cancellationToken = default)
+    /// <summary><para>Calls the OpenAI chat completion endpoint with the <paramref name="parameters"/> and
+    /// <paramref name="cancellationToken"/> provided.</para><para>Explicitly sets
+    /// <see cref="CompletionParameters.Stream"/> to <see langword="false"/>.</para></summary>
+    /// <param name="parameters">The <see cref="CompletionParameters"/> which detail the request 
+    /// to be made.</param>
+    /// <param name="inputModeration"><para>The <see cref="ModerationResponse"/> to associate with
+    /// this request.</para></param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> which can be used to
+    /// cancel the request.</param>
+    /// <returns><para>A <see cref="CompletionResponseWithCostAndModeration"/> which contains the
+    /// <see cref="CompletionResponse"/> and the cost of the request.</para></returns>
+    public async Task<CompletionResponseWithCostAndModeration> CallChatAsync
+        ( CompletionParameters parameters
+        , ModerationResponse? inputModeration = null
+        , CancellationToken cancellationToken = default)
     {
         if (parameters == null)
             throw new ArgumentNullException(nameof(parameters));
@@ -215,16 +220,36 @@ public partial class OpenAIApis
             else
                 inputCost = await parameters.GetInputCostAsync();
 
-            return new CompletionResponseWithCost(completionResponse, outputCost, inputCost);
+
+            // If we have an input moderation, we need to moderate the output
+            // choices as well. Users of this library can choose how they respond
+            // to the moderation results.
+            if (inputModeration != null && completionResponse.IsSuccess)
+            {
+                var outputModerations = new Dictionary<int, ModerationResponse>();
+                if (completionResponse.Choices != null)
+                    foreach (CompletionChoice choice in completionResponse.Choices)
+                        if (choice.Message?.Content != null)
+                        {
+                            var moderationInput = new ModerationInput(choice.Message.Content);
+                            var outputModerationResponse = await ModerateAsync(moderationInput);
+                            if (outputModerationResponse != null && outputModerationResponse.IsSuccess)
+                                outputModerations.Add(choice.Index, outputModerationResponse);
+                        }
+
+                return new CompletionResponseWithCostAndModeration(completionResponse, inputCost, outputCost, inputModeration, outputModerations);
+            }
+            else
+                return new CompletionResponseWithCostAndModeration(completionResponse, inputCost, outputCost, inputModeration);
         }
         catch (Exception e)
         {
             var inputCost = await parameters.GetInputCostAsync();
-            return new CompletionResponseWithCost
+            return new CompletionResponseWithCostAndModeration
                 ( new CompletionResponse
                     { IsSuccess = false
                     , Exception = e }
-                , 0, inputCost);
+                , inputCost, outputCost: 0);
         }
     }
 

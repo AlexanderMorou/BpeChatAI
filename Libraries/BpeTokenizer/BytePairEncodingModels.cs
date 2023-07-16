@@ -83,8 +83,8 @@ public class BytePairEncodingModels
 
         if (encodingName == null)
             throw new KeyNotFoundException
-                ( $"Could not automatically map {modelName} to a tokeniser. " 
-                + "Please use `TikToken.GetEncoding` to explicitly get the tokeniser you expect." );
+                ( $"Could not automatically map {modelName} to a tokenizer. " 
+                + $"Please use `{nameof(BytePairEncodingRegistry)}.{nameof(GetEncodingAsync)}` to explicitly get the tokenizer you expect." );
 
         return await GetEncodingAsync(encodingName);
     }

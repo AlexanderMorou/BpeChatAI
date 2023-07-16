@@ -13,7 +13,7 @@
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/AlexanderMorou/BpeChatAI</RepositoryUrl>
         <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
-        <PackageReleaseNotes>Noticed that the package was built without optimizations. Added package icon.</PackageReleaseNotes>
+        <PackageReleaseNotes>Implemented moderation in the ChatManager. Refactored `CompletionResponseWithCost` to be `CompletionResponseWithCostAndModeration`.</PackageReleaseNotes>
         <PackageTags>BytePairEncoding;BPE;OpenAI;GPT-3.5;GPT-4;.NET;GPT3.5;GPT4;GPT35</PackageTags>
         <IncludeSymbols>True</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -30,7 +30,7 @@
         <ProjectReference Include="..\BpeTokenizer\BpeTokenizer.csproj" />
     </ItemGroup>
     <ItemGroup Condition=" '$(Configuration)'=='ReleaseWithNuget' ">
-        <PackageReference Include="BpeTokenizer" Version="1.0.3" />
+        <PackageReference Include="BpeTokenizer" Version="1.0.4" />
     </ItemGroup>
     <ItemGroup>
       <None Include="..\..\.editorconfig" Link=".editorconfig" />

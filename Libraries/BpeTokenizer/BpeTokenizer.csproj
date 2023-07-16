@@ -14,7 +14,7 @@
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/AlexanderMorou/BpeChatAI</RepositoryUrl>
         <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
-        <PackageReleaseNotes>Noticed that the package was built without optimizations. Added package icon.</PackageReleaseNotes>
+        <PackageReleaseNotes>Corrected ReadMe.md to point to the appropriate branch for GitHub link.</PackageReleaseNotes>
         <PackageTags>BytePairEncoding;BPE;OpenAI;tiktoken;.NET</PackageTags>
         <IncludeSymbols>True</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>

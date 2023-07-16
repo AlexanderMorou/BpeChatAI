@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using BpeChatAI.Moderation;
 
 namespace BpeChatAI.Chat;
 /// <summary>A class to manage a chat session with OpenAI's chat completion API.</summary>
@@ -27,6 +28,9 @@ public class ChatManager
     /// <para>The decision to use or omit moderation is the responsibility
     /// of the developer using this package.</para></summary>
     public bool IsModerated { get; set; } = true;
+
+    /// <summary><para>The moderation results tracked from the <see cref="OpenAIApis.ModerateAsync(ModerationInput)"/>.</para></summary>
+    public List<ModerationResult> LastModerationResult { get; private set; } = new List<ModerationResult>();
 
     /// <summary>Occurs when a streaming token is received.</summary>
     public event EventHandler<StreamTokenReceivedEventArgs>? StreamTokenReceived;
@@ -69,8 +73,8 @@ public class ChatManager
     /// then executes <see cref="PostAsync(CancellationToken)"/>.</para></summary>
     /// <param name="message"><para>The message to post to the <see cref="Parameters"/> under the user role.</para></param>
     /// <param name="cancellationToken"><para>The <see cref="CancellationToken"/> to use for the API call.</para></param>
-    /// <returns><para>A <see cref="CompletionResponseWithCost"/> instance that represents the response from the API.</para></returns>
-    public async Task<CompletionResponseWithCost> PostUserMessageAsync(string message, CancellationToken cancellationToken = default)
+    /// <returns><para>A <see cref="CompletionResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
+    public async Task<CompletionResponseWithCostAndModeration> PostUserMessageAsync(string message, CancellationToken cancellationToken = default)
     {
         this.Parameters.Messages.Add(new CompletionMessage { Content = message, Role = "user" });
         return await this.PostAsync(cancellationToken);
@@ -79,10 +83,16 @@ public class ChatManager
     /// <summary><para>Posts the <see cref="Parameters"/> to the OpenAI Chat
     /// Completion API and returns the response.</para></summary>
     /// <param name="cancellationToken"><para>The <see cref="CancellationToken"/> to use for the API call.</para></param>
-    /// <returns><para>A <see cref="CompletionResponseWithCost"/> instance that represents the response from the API.</para></returns>
-    public async Task<CompletionResponseWithCost> PostAsync(CancellationToken cancellationToken = default)
+    /// <returns><para>A <see cref="CompletionResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
+    public async Task<CompletionResponseWithCostAndModeration> PostAsync(CancellationToken cancellationToken = default)
     {
-        var response = await this.OpenAIApis.CallChatAsync(this.Parameters, cancellationToken);
+        ModerationResponse inputModeration = null;
+        if (this.IsModerated)
+        {
+
+        }
+
+        var response = await this.OpenAIApis.CallChatAsync(this.Parameters, inputModeration, cancellationToken);
         if (response.IsSuccess
             && response.Choices != null)
         {

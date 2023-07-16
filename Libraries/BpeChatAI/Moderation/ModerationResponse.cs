@@ -28,4 +28,11 @@ public class ModerationResponse
     [JsonIgnore()]
     public Exception? Exception { get; set; }
 
+    /// <summary><para>Gets whether any of the results were flagged.</para>
+    /// <para>Convenience property for checking if any of the results were flagged and is not
+    /// serialized.</para></summary>
+    [JsonIgnore]
+    public bool IsFlagged
+        => this.Results?.Any(x => x.Flagged) ?? false;
+
 }

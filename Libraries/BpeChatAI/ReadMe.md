@@ -1,6 +1,6 @@
 ﻿# BpeChatAI
 [![NuGet](https://img.shields.io/nuget/v/BpeChatAI.svg)](https://www.nuget.org/packages/BpeChatAI)
-[![Last Commit](https://img.shields.io/github/last-commit/AlexanderMorou/BpeChatAI.svg)](https://github.com/AlexanderMorou/BpeChatAI/commits/main)
+[![Last Commit](https://img.shields.io/github/last-commit/AlexanderMorou/BpeChatAI.svg)](https://github.com/AlexanderMorou/BpeChatAI/commits/master)
 [![GitHub Issues](https://img.shields.io/github/issues/AlexanderMorou/BpeChatAI.svg)](https://github.com/AlexanderMorou/BpeChatAI/issues)
 [![Used by](https://img.shields.io/nuget/dt/BpeChatAI.svg)](https://www.nuget.org/packages/BpeChatAI)
 [![Contributors](https://img.shields.io/github/contributors/AlexanderMorou/BpeChatAI.svg)](https://github.com/AlexanderMorou/BpeChatAI/graphs/contributors)
