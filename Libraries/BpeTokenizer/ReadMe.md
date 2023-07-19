@@ -71,17 +71,12 @@ The following models are supported (from tiktoken source, embedding in parenthes
     1. gpt-4         - e.g., gpt-4-0314, etc., plus gpt-4-32k
     1. gpt-3.5-turbo - e.g, gpt-3.5-turbo-0301, -0401, etc.
     1. gpt-35-turbo  - Azure deployment name
-1. Text
-    1. text-davinci-003 (p50k_base)
-    1. text-davinci-002 (p50k_base)
-    1. text-davinci-001 (r50k_base)
-    1. text-curie-001   (r50k_base)
-    1. text-babbage-001 (r50k_base)
-    1. text-ada-001     (r50k_base)
-    1. davinci          (r50k_base)
-    1. curie            (r50k_base)
-    1. babbage          (r50k_base)
-    1. ada              (r50k_base)
+1. Text ([future use](https://openai.com/blog/gpt-4-api-general-availability#deprecation-of-older-models-in-the-completions-api), all [cl100k_base](https://github.com/openai/tiktoken/issues/166#issuecomment-1637211143) API availability on Jan 4, 2024)
+    1. ada-002
+    1. babbage-002
+    1. curie-002
+    1. davinci-002
+    1. gpt-3.5-turbo-instruct
 1. Code (all p50k_base)
     1. code-davinci-002
     1. code-davinci-001
@@ -94,6 +89,17 @@ The following models are supported (from tiktoken source, embedding in parenthes
     1. code-davinci-edit-001
 1. Embeddings
     1. text-embedding-ada-002 (cl100k_base)
+1. [Legacy](https://openai.com/blog/gpt-4-api-general-availability#deprecation-of-older-models-in-the-completions-api) (no longer available on Jan 4, 2024)
+    1. text-davinci-003 (p50k_base)
+    1. text-davinci-002 (p50k_base)
+    1. text-davinci-001 (r50k_base)
+    1. text-curie-001   (r50k_base)
+    1. text-babbage-001 (r50k_base)
+    1. text-ada-001     (r50k_base)
+    1. davinci          (r50k_base)
+    1. curie            (r50k_base)
+    1. babbage          (r50k_base)
+    1. ada              (r50k_base)
 1. Old Embeddings (all r50k_base)
     1. text-similarity-davinci-001
     1. text-similarity-curie-001

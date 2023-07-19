@@ -6,14 +6,17 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using BpeChatAI.Moderation;
+using BpeChatAI.OpenAI.Moderation;
+using BpeChatAI.OpenAI.ChatCompletions;
+using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
+using CompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
 
 namespace BpeChatAI.Chat;
 /// <summary>A class to manage a chat session with OpenAI's chat completion API.</summary>
 public class ChatManager
 {
     /// <summary>The class that handles the actual API calls.</summary>
-    public OpenAIApis OpenAIApis { get; private set; }
+    public ApiClient OpenAIApis { get; private set; }
 
     /// <summary>The parameters to use for the next API call.</summary>
     public CompletionParameters Parameters { get; private set; }
@@ -29,8 +32,8 @@ public class ChatManager
     /// of the developer using this package.</para></summary>
     public bool IsModerated { get; set; } = true;
 
-    /// <summary><para>The moderation results tracked from the <see cref="OpenAIApis.ModerateAsync(ModerationInput)"/>.</para></summary>
-    public List<ModerationResult> LastModerationResult { get; private set; } = new List<ModerationResult>();
+    /// <summary><para>The moderation results tracked from the <see cref="ApiClient.ModerateAsync(ModerationParameters)"/>.</para></summary>
+    public List<Result> LastModerationResult { get; private set; } = new List<Result>();
 
     /// <summary>Occurs when a streaming token is received.</summary>
     public event EventHandler<StreamTokenReceivedEventArgs>? StreamTokenReceived;
@@ -41,7 +44,7 @@ public class ChatManager
     /// <param name="options">The options to use for the chat session. If
     /// <see langword="null"/>, the default options
     /// will be used in calls to the API.</param>
-    public ChatManager(OpenAIApis apis, ChatManagerOptions options)
+    public ChatManager(ApiClient apis, ChatManagerOptions options)
         : this(apis, options.Model, options.Temperature, options.MaxTokens, options.NumPrompts) { }
 
     /// <summary>Creates a new <see cref="ChatManager"/> instance with the
@@ -51,7 +54,7 @@ public class ChatManager
     /// <param name="apis">The <see cref="OpenAIApis"/> instance to use for API calls.</param>
     /// <param name="model">
     /// <para>The <see cref="KnownChatCompletionModel"/> that establishes the model used by the
-    /// <see cref="BytePairEncoder"/> to handle tokenization.</para>
+    /// <see cref="BpeTokenizer.Encoder"/> to handle tokenization.</para>
     /// <para>Tokenization is key to tracking cost as the OpenAI API uses the same
     /// tokenization process.</para></param>
     /// <param name="temperature"><para>The <see cref="CompletionParameters.Temperature"/>
@@ -63,7 +66,7 @@ public class ChatManager
     /// </param>
     /// <param name="numPrompts"><para>The <see cref="CompletionParameters.NumPrompts"/> to use for the chat session.</para>
     /// <para>Can be changed later by calling <see cref="ChangeNumPrompts(int)"/>.</para></param>
-    public ChatManager(OpenAIApis apis, KnownChatCompletionModel model, double? temperature = null, int? maxTokens = null, int? numPrompts = null)
+    public ChatManager(ApiClient apis, KnownChatCompletionModel model, double? temperature = null, int? maxTokens = null, int? numPrompts = null)
     {
         this.OpenAIApis = apis;
         this.Parameters = new CompletionParameters(model.GetModelName(), temperature, maxTokens, numPrompts);
@@ -73,23 +76,29 @@ public class ChatManager
     /// then executes <see cref="PostAsync(CancellationToken)"/>.</para></summary>
     /// <param name="message"><para>The message to post to the <see cref="Parameters"/> under the user role.</para></param>
     /// <param name="cancellationToken"><para>The <see cref="CancellationToken"/> to use for the API call.</para></param>
-    /// <returns><para>A <see cref="CompletionResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
-    public async Task<CompletionResponseWithCostAndModeration> PostUserMessageAsync(string message, CancellationToken cancellationToken = default)
+    /// <returns><para>A <see cref="ResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
+    public async Task<ResponseWithCostAndModeration> PostUserMessageAsync(string message, CancellationToken cancellationToken = default)
     {
-        this.Parameters.Messages.Add(new CompletionMessage { Content = message, Role = "user" });
+        this.Parameters.Messages.Add(new Message { Content = message, Role = "user" });
         return await this.PostAsync(cancellationToken);
     }
 
     /// <summary><para>Posts the <see cref="Parameters"/> to the OpenAI Chat
     /// Completion API and returns the response.</para></summary>
     /// <param name="cancellationToken"><para>The <see cref="CancellationToken"/> to use for the API call.</para></param>
-    /// <returns><para>A <see cref="CompletionResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
-    public async Task<CompletionResponseWithCostAndModeration> PostAsync(CancellationToken cancellationToken = default)
+    /// <returns><para>A <see cref="ResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
+    public async Task<ResponseWithCostAndModeration> PostAsync(CancellationToken cancellationToken = default)
     {
-        ModerationResponse inputModeration = null;
+        OpenAI.Moderation.Response inputModeration = null;
         if (this.IsModerated)
         {
-
+            //try
+            //{
+            //    inputModeration
+            //}
+            //catch
+            //{
+            //}
         }
 
         var response = await this.OpenAIApis.CallChatAsync(this.Parameters, inputModeration, cancellationToken);
@@ -170,7 +179,7 @@ public class ChatManager
         {
             var firstChoice = builders.First().Value.ToString();
             this.Parameters.Messages.Add
-                ( new CompletionMessage
+                ( new Message
                   { Role = "assistant"
                   , Content = firstChoice });
         }
@@ -192,7 +201,7 @@ public class ChatManager
     /// <see cref="CompletionParameters.NumPrompts"/> specified in <see cref="Parameters"/>.</para></returns>
     public async IAsyncEnumerable<string> PostStreamingUserMessageAsync(string message, [EnumeratorCancellation]CancellationToken cancellationToken = default)
     {
-        this.Parameters.Messages.Add(new CompletionMessage { Content = message, Role = "user" });
+        this.Parameters.Messages.Add(new Message { Content = message, Role = "user" });
         // Use the async enumerable to ensure the EnumeratorCancellation attribute
         // avoids giving a compiler warning.
         await foreach (var response in PostStreamingAsync(cancellationToken))
@@ -357,10 +366,10 @@ public class StreamTokenReceivedEventArgs
     {
         if (manager == null)
             throw new ArgumentNullException(nameof(manager));
-        var encoding = await BytePairEncodingModels.EncodingForModelAsync(manager.Parameters.Model);
+        var encoding = await BpeTokenizer.Models.EncodingForModelAsync(manager.Parameters.Model);
         if (this.TokenText == null)
             return 0;
-        return encoding.Encode(this.TokenText).Count * OpenAIApis.GetOutputCostPerToken(manager.Parameters.Model);
+        return encoding.Encode(this.TokenText).Count * ApiClient.GetOutputCostPerToken(manager.Parameters.Model);
     }
 }
 

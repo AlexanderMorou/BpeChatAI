@@ -16,12 +16,12 @@ public class ChatManagerFactory
     /// <param name="openAIApis">The <see cref="OpenAIApis"/> instance
     /// to use for creating <see cref="ChatManager"/>.<para>Represents the OpenAI
     /// API endpoints.</para></param>
-    public ChatManagerFactory(OpenAIApis openAIApis)
+    public ChatManagerFactory(ApiClient openAIApis)
         => this.OpenAIApis = openAIApis;
 
     /// <summary><para>Gets the <see cref="OpenAIApis"/> instance to use for creating
     /// <see cref="ChatManager"/>.</para><para>Represents the OpenAI API endpoints.</para></summary>
-    public OpenAIApis OpenAIApis { get; }
+    public ApiClient OpenAIApis { get; }
 
     /// <summary>Creates a new <see cref="ChatManager"/> instance with the
     /// specified <paramref name="options"/>.</summary>
