@@ -8,8 +8,12 @@ using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using BpeChatAI.OpenAI.Moderation;
 using BpeChatAI.OpenAI.ChatCompletions;
+using CompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
+using ModerationResponse = BpeChatAI.OpenAI.Moderation.Response;
 using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
 using CompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
+// Disabled this so we can have interior comments with <see cref=""/> tags.
+#pragma warning disable 1587 // XML comment is not placed on a valid language element
 
 namespace BpeChatAI.Chat;
 /// <summary>A class to manage a chat session with OpenAI's chat completion API.</summary>
@@ -89,16 +93,28 @@ public class ChatManager
     /// <returns><para>A <see cref="ResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
     public async Task<ResponseWithCostAndModeration> PostAsync(CancellationToken cancellationToken = default)
     {
-        OpenAI.Moderation.Response inputModeration = null;
+        ModerationResponse? inputModeration = null;
         if (this.IsModerated)
         {
-            //try
-            //{
-            //    inputModeration
-            //}
-            //catch
-            //{
-            //}
+            var finalMessage = this.Parameters.Messages.LastOrDefault();
+            if (!(finalMessage?.Moderated ?? true)
+                && !string.IsNullOrWhiteSpace(finalMessage!.Content))
+                try
+                {
+                    var moderationParameters = new ModerationParameters(finalMessage!.Content);
+                    inputModeration = await this.OpenAIApis.ModerateAsync(moderationParameters, cancellationToken);
+                }
+                catch (Exception moderationException)
+                {
+                    /// If moderation fails and it's a moderated <see cref="ChatManager"/> instance,
+                    /// we should fail the API call.
+                    return new ResponseWithCostAndModeration
+                           ( CompletionResponse.EmptyResponse
+                           , inputCost: 0
+                           , outputCost: 0)
+                           { IsSuccess = false
+                           , Exception = moderationException };
+                }
         }
 
         var response = await this.OpenAIApis.CallChatAsync(this.Parameters, inputModeration, cancellationToken);

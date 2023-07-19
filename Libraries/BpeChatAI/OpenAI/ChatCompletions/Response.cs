@@ -4,6 +4,9 @@ namespace BpeChatAI.OpenAI.ChatCompletions;
 /// <summary>Represents a completion response.</summary>
 public class Response
 {
+    /// <summary><para>Represents an empty response.</para>
+    /// <para>Returns a new instance every time.</para></summary>
+    public static Response EmptyResponse => new Response();
     /// <summary><para>Gets or sets the ID of the response.</para>
     /// <para>Serializes as "id".</para></summary>
     [JsonProperty("id")]

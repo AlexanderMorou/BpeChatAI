@@ -14,6 +14,9 @@ using System.Diagnostics.Metrics;
 using BpeChatAI.OpenAI.Models;
 using BpeChatAI.OpenAI.ChatCompletions;
 using BpeChatAI.OpenAI.Moderation;
+using ModerationResponse = BpeChatAI.OpenAI.Moderation.Response;
+using CompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
+
 using CompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
 using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
 namespace BpeChatAI.OpenAI;
@@ -165,7 +168,7 @@ public partial class ApiClient
     /// <see cref="CompletionParameters.Stream"/> to <see langword="false"/>.</para></summary>
     /// <param name="parameters">The <see cref="CompletionParameters"/> which detail the request 
     /// to be made.</param>
-    /// <param name="inputModeration"><para>The <see cref="Moderation.Response"/> to associate with
+    /// <param name="inputModeration"><para>The <see cref="ModerationResponse"/> to associate with
     /// this request.</para></param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> which can be used to
     /// cancel the request.</param>
@@ -173,7 +176,7 @@ public partial class ApiClient
     /// <see cref="ChatCompletions.Response"/> and the cost of the request.</para></returns>
     public async Task<ResponseWithCostAndModeration> CallChatAsync
         ( CompletionParameters parameters
-        , Moderation.Response? inputModeration = null
+        , ModerationResponse? inputModeration = null
         , CancellationToken cancellationToken = default)
     {
         if (parameters == null)
@@ -224,7 +227,7 @@ public partial class ApiClient
             // to the moderation results.
             if (inputModeration != null && completionResponse.IsSuccess)
             {
-                var outputModerations = new Dictionary<int, Moderation.Response>();
+                var outputModerations = new Dictionary<int, ModerationResponse>();
                 if (completionResponse.Choices != null)
                     foreach (ResponseChoice choice in completionResponse.Choices)
                         if (choice.Message?.Content != null)
@@ -357,9 +360,13 @@ public partial class ApiClient
     /// <summary>Calls the OpenAI moderation endpoint with the <paramref name="input"/>
     /// provided.</summary>
     /// <param name="input"><para>The <see cref="ModerationParameters"/> to send to the OpenAI API.</para></param>
+    /// <param name="cancellationToken"><para>An optional <see cref="CancellationToken"/>
+    /// used to cancel the request.</para></param>
     /// <returns><para>A moderation response from the OpenAI API, possibly null.</para></returns>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
-    public async Task<Moderation.Response?> ModerateAsync(ModerationParameters input)
+    public async Task<ModerationResponse?> ModerateAsync
+        ( ModerationParameters input
+        , CancellationToken cancellationToken = default)
     {
         if (input == null)
             throw new ArgumentNullException(nameof(input));
@@ -371,30 +378,51 @@ public partial class ApiClient
         HttpResponseMessage response;
         try
         {
-            response = await httpClient.PostAsync(ModerationsEndpointUri, jsonContent);
+            response = await httpClient.PostAsync(ModerationsEndpointUri, jsonContent, cancellationToken);
         }
         catch (Exception e)
         {
-            return new Moderation.Response()
+            return new ModerationResponse()
                    { IsSuccess = false
                    , Exception = e };
         }
 
         if (response.IsSuccessStatusCode)
         {
-            var jsonString = await response.Content.ReadAsStringAsync();
-            var moderationResponse = JsonConvert.DeserializeObject<Moderation.Response>(jsonString);
+            string jsonString;
+
+            try
+            {
+                jsonString = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                return new ModerationResponse()
+                       { IsSuccess = false
+                       , Exception = e };
+            }
+            ModerationResponse? moderationResponse;
+            try
+            {
+                moderationResponse = JsonConvert.DeserializeObject<ModerationResponse>(jsonString);
+            }
+            catch (Exception e)
+            {
+                return new ModerationResponse()
+                       { IsSuccess = false
+                       , Exception = e };
+            }
             if (moderationResponse != null)
                 moderationResponse.IsSuccess = true;
             else
                 moderationResponse =
-                    new Moderation.Response()
+                    new ModerationResponse()
                     { IsSuccess = false
-                    , ErrorMessage = $"Could not deserialize the response received into a {nameof(Moderation.Response)}." };
+                    , ErrorMessage = $"Could not deserialize the response received into a {nameof(ModerationResponse)}." };
             return moderationResponse;
         }
         else
-            return new Moderation.Response()
+            return new ModerationResponse()
                    { IsSuccess = false
                    , ErrorMessage = $"Could not deserialize the response. Status code: {response.StatusCode}, Error: {response.ReasonPhrase}" };
     }
