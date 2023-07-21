@@ -226,18 +226,17 @@ public partial class ApiClient
             // to the moderation results.
             if (moderateCompletions && completionResponse.IsSuccess)
             {
-                var outputModerations = new Dictionary<int, ModerationResponse>();
                 if (completionResponse.Choices != null)
                     foreach (ResponseChoice choice in completionResponse.Choices)
                         if (choice.Message?.Content != null)
                         {
                             var moderationInput = new ModerationParameters(choice.Message.Content);
-                            var outputModerationResponse = await ModerateAsync(moderationInput);
-                            if (outputModerationResponse != null && outputModerationResponse.IsSuccess)
-                                outputModerations.Add(choice.Index, outputModerationResponse);
+                            var outputModerationResponse = await this.ModerateAsync(moderationInput, cancellationToken);
+                            if (outputModerationResponse != null)
+                                choice.Message.ModerationResponse = outputModerationResponse;
                         }
 
-                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost, outputModerations);
+                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost);
             }
             else
                 return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost);

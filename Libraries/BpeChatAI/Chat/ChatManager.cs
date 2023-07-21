@@ -19,6 +19,7 @@ namespace BpeChatAI.Chat;
 /// <summary>A class to manage a chat session with OpenAI's chat completion API.</summary>
 public class ChatManager
 {
+    internal const bool IsModeratedDefault = true;
     /// <summary>The class that handles the actual API calls.</summary>
     public ApiClient ApiClient { get; private set; }
 
@@ -34,7 +35,7 @@ public class ChatManager
     /// need to self-filter their commentary.</para>
     /// <para>The decision to use or omit moderation is the responsibility
     /// of the developer using this package.</para></summary>
-    public bool IsModerated { get; set; } = true;
+    public bool IsModerated { get; set; } = IsModeratedDefault;
 
     /// <summary>Occurs when a streaming token is received.</summary>
     public event EventHandler<StreamTokenReceivedEventArgs>? StreamTokenReceived;
@@ -46,7 +47,7 @@ public class ChatManager
     /// <see langword="null"/>, the default options
     /// will be used in calls to the API.</param>
     public ChatManager(ApiClient apis, ChatManagerOptions options)
-        : this(apis, options.Model, options.Temperature, options.MaxTokens, options.NumPrompts) { }
+        : this(apis, options.Model, options.Temperature, options.MaxTokens, options.NumPrompts, options.IsModerated) { }
 
     /// <summary>Creates a new <see cref="ChatManager"/> instance with the
     /// <paramref name="apiClient"/>, <paramref name="model"/>,
@@ -67,10 +68,26 @@ public class ChatManager
     /// </param>
     /// <param name="numPrompts"><para>The <see cref="ChatCompletionParameters.NumPrompts"/> to use for the chat session.</para>
     /// <para>Can be changed later by calling <see cref="ChangeNumPrompts(int)"/>.</para></param>
-    public ChatManager(ApiClient apiClient, KnownChatCompletionModel model, double? temperature = null, int? maxTokens = null, int? numPrompts = null)
+    /// <param name="isModerated"><para>Gets or sets whether the chat session is moderated.</para>
+    /// <para>It's recommended that you set this to <see langword="true"/> for
+    /// unstructured chat sessions.</para>
+    /// <para>Examples of software that may be okay without moderation:
+    /// Personal projects that are not publicly accessible, or chat sessions
+    /// that are limited to a small group of people who are aware of the
+    /// need to self-filter their commentary.</para>
+    /// <para>The decision to use or omit moderation is the responsibility
+    /// of the developer using this package.</para></param>
+    public ChatManager
+        ( ApiClient apiClient
+        , KnownChatCompletionModel model
+        , double? temperature = null
+        , int? maxTokens = null
+        , int? numPrompts = null
+        , bool isModerated = IsModeratedDefault)
     {
         this.ApiClient = apiClient;
         this.Parameters = new ChatCompletionParameters(model.GetModelName(), temperature, maxTokens, numPrompts);
+        this.IsModerated = isModerated;
     }
 
     /// <summary><para>Posts a user role message to the <see cref="Parameters"/>,
@@ -108,10 +125,9 @@ public class ChatManager
                         /// If moderation fails and it's a moderated <see cref="ChatManager"/> instance,
                         /// we should fail the API call.
                         return new ResponseWithCostAndModeration
-                               ( ChatCompletionResponse.EmptyResponse
+                               (ChatCompletionResponse.EmptyResponse
                                , inputCost: 0
-                               , outputCost: 0)
-                               { IsSuccess = false
+                               , outputCost: 0) { IsSuccess = false
                                , Exception = moderationException };
                     }
             }
@@ -255,16 +271,9 @@ public class ChatManager
             }
         }
         if (!wasNoCost)
-            this.InputCost += await Parameters.GetInputCostAsync();
-        if ((this.Parameters.NumPrompts ?? 1) == 1
-            && builders.Count == 1)
-        {
-            var firstChoice = builders.First().Value.ToString();
-            this.Parameters.Messages.Add
-                ( new Message
-                  { Role    = "assistant"
-                  , Content = firstChoice });
-        }
+            this.InputCost += await this.Parameters.GetInputCostAsync();
+
+        bool singleResponse = builders.Count == 1 && (this.Parameters.NumPrompts ?? 1) == 1;
 
         foreach (var key in builders.Keys)
         {
@@ -290,6 +299,14 @@ public class ChatManager
                 completionModeration = null;
             if (cancellationToken.IsCancellationRequested)
                 yield break;
+
+            if (singleResponse)
+                this.Parameters.Messages.Add
+                    ( new Message
+                      { Role    = "assistant"
+                      , Content = completion
+                      , ModerationResponse = completionModeration });
+
             yield return 
                 new StreamingResponseWithCostAndModeration
                 { Completion        = completion
@@ -478,7 +495,7 @@ public class StreamTokenReceivedEventArgs
     {
         if (manager == null)
             throw new ArgumentNullException(nameof(manager));
-        var encoding = await BpeTokenizer.Models.EncodingForModelAsync(manager.Parameters.Model);
+        var encoding = await Models.EncodingForModelAsync(manager.Parameters.Model);
         if (this.TokenText == null)
             return 0;
         return encoding.Encode(this.TokenText).Count * ApiClient.GetOutputCostPerToken(manager.Parameters.Model);
