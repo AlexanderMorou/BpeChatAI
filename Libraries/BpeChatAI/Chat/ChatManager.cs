@@ -95,13 +95,13 @@ public class ChatManager
             var inputsToModerate = 
                 this.Parameters.Messages.Where(x => x.ModerationResponse == null || !x.ModerationResponse.IsSuccess)
                 .ToArray();
-            foreach (var finalMessage in inputsToModerate)
+            foreach (var inputToModerate in inputsToModerate)
             {
-                if (!string.IsNullOrWhiteSpace(finalMessage!.Content))
+                if (!string.IsNullOrWhiteSpace(inputToModerate!.Content))
                     try
                     {
-                        var moderationParameters = new ModerationParameters(finalMessage!.Content);
-                        finalMessage.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
+                        var moderationParameters = new ModerationParameters(inputToModerate!.Content);
+                        inputToModerate.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
                     }
                     catch (Exception moderationException)
                     {
@@ -174,14 +174,14 @@ public class ChatManager
             var inputsToModerate = 
                 this.Parameters.Messages.Where(x => x.ModerationResponse == null || !x.ModerationResponse.IsSuccess)
                 .ToArray();
-            foreach (var finalMessage in inputsToModerate)
+            foreach (var inputToModerate in inputsToModerate)
             {
                 Exception? capturedModerationException = null;
-                if (!string.IsNullOrWhiteSpace(finalMessage!.Content))
+                if (!string.IsNullOrWhiteSpace(inputToModerate!.Content))
                     try
                     {
-                        var moderationParameters = new ModerationParameters(finalMessage!.Content);
-                        finalMessage.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
+                        var moderationParameters = new ModerationParameters(inputToModerate!.Content);
+                        inputToModerate.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
                     }
                     catch (Exception moderationException)
                     {
