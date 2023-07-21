@@ -7,6 +7,7 @@ namespace BpeChatAI.OpenAI.Models;
 /// <summary>Represents a model from the OpenAI Models API.</summary>
 [DebuggerDisplay($"{{{nameof(Id)}}}")]
 public class Details
+    : ApiResponseWithSuccessInformation
 {
     /// <summary><para>Gets or sets the Id of the model.</para>
     /// <para>Serializes as "id".</para></summary>
@@ -25,16 +26,4 @@ public class Details
     /// <para>Serializes as "permissions".</para></summary>
     [JsonProperty("permission")]
     public List<Permissions>? Permission { get; set; }
-    /// <summary>Gets or sets the success status of the request.</summary>
-    [JsonIgnore]
-    public bool IsSuccess { get; set; }
-    /// <summary>
-    /// Gets or sets the <see cref="string"/> value denoting the error message
-    /// when <see cref="IsSuccess"/> is <see langword="false"/>.</summary>
-    [JsonIgnore]
-    public string? ErrorMessage { get; set; }
-    /// <summary>Gets or sets the exception if there was a failure making the request.</summary>
-    [JsonIgnore()]
-    public Exception? Exception { get; set; }
-
 }

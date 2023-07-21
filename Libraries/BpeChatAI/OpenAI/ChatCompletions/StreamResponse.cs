@@ -3,6 +3,7 @@
 namespace BpeChatAI.OpenAI.ChatCompletions;
 /// <summary>Represents a streaming completion response.</summary>
 public class StreamResponse
+    : ApiResponseWithSuccessInformation
 {
     /// <summary><para>Gets or sets the ID of the response.</para>
     /// <para>Serializes as "id".</para></summary>
@@ -33,13 +34,4 @@ public class StreamResponse
     [JsonIgnore]
     public bool ErrorOnRequest { get; set; }
     /// <summary>Gets or sets whether the streaming completion response was successful.</summary>
-    [JsonIgnore]
-    public bool IsSuccess { get; set; }
-    /// <summary>Returns or sets the <see cref="string"/> value denoting the error message
-    /// when the streaming completion response had an error.</summary>
-    [JsonIgnore]
-    public string? ErrorMessage { get; set; }
-    /// <summary>Gets or sets the exception if there was a failure making the request.</summary>
-    [JsonIgnore()]
-    public Exception? Exception { get; set; }
 }

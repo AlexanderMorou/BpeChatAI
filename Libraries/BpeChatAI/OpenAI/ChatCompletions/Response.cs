@@ -3,6 +3,7 @@
 namespace BpeChatAI.OpenAI.ChatCompletions;
 /// <summary>Represents a completion response.</summary>
 public class Response
+    : ApiResponseWithSuccessInformation
 {
     /// <summary><para>Represents an empty response.</para>
     /// <para>Returns a new instance every time.</para></summary>
@@ -36,15 +37,4 @@ public class Response
     /// <para>Serializes as "usage".</para></summary>
     [JsonProperty("usage")]
     public Usage? Usage { get; set; }
-
-    /// <summary>Gets or sets whether the response was successful or not.</summary>
-    [JsonIgnore()]
-    public bool IsSuccess { get; set; }
-
-    /// <summary>Gets or sets the error message if there was an error in the response.</summary>
-    [JsonIgnore()]
-    public string? ErrorMessage { get; set; }
-    /// <summary>Gets or sets the exception if there was a failure making the request.</summary>
-    [JsonIgnore()]
-    public Exception? Exception { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
+using ModerationResponse = BpeChatAI.OpenAI.Moderation.Response;
 namespace BpeChatAI.OpenAI.ChatCompletions;
 
 /// <summary>Represents a completion message.</summary>
@@ -22,9 +23,9 @@ public class Message
     public string? Name { get; set; }
 
     /// <summary><para>Gets or sets whether the <see cref="Message"/> has been moderated</para>
-    /// <para>If <see langword="true"/>, the <see cref="Message"/> has been sent through the
-    /// <see cref="ApiClient.ModerateAsync(ModerationParameters)"/>. Otherwise the
-    /// <see cref="Message"/> has not yet been sent through the moderation API.</para></summary>
+    /// <para>If this is a <see cref="ModerationResponse"/> instance, the 
+    /// <see cref="Message"/> has been sent through the <see cref="ApiClient.ModerateAsync(ModerationParameters, CancellationToken)"/>.
+    /// Otherwise the <see cref="Message"/> has not yet been sent through the moderation API.</para></summary>
     [JsonIgnore]
-    public bool Moderated { get; set; } = false;
+    public ModerationResponse? ModerationResponse { get; set; }
 }

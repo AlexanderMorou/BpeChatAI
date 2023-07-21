@@ -8,10 +8,10 @@ using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using BpeChatAI.OpenAI.Moderation;
 using BpeChatAI.OpenAI.ChatCompletions;
-using CompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
+using ChatCompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
 using ModerationResponse = BpeChatAI.OpenAI.Moderation.Response;
 using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
-using CompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
+using ChatCompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
 // Disabled this so we can have interior comments with <see cref=""/> tags.
 #pragma warning disable 1587 // XML comment is not placed on a valid language element
 
@@ -20,10 +20,10 @@ namespace BpeChatAI.Chat;
 public class ChatManager
 {
     /// <summary>The class that handles the actual API calls.</summary>
-    public ApiClient OpenAIApis { get; private set; }
+    public ApiClient ApiClient { get; private set; }
 
     /// <summary>The parameters to use for the next API call.</summary>
-    public CompletionParameters Parameters { get; private set; }
+    public ChatCompletionParameters Parameters { get; private set; }
 
     /// <summary><para>Gets or sets whether the chat session is moderated.</para>
     /// <para>It's recommended that you set this to <see langword="true"/> for
@@ -36,15 +36,12 @@ public class ChatManager
     /// of the developer using this package.</para></summary>
     public bool IsModerated { get; set; } = true;
 
-    /// <summary><para>The moderation results tracked from the <see cref="ApiClient.ModerateAsync(ModerationParameters)"/>.</para></summary>
-    public List<Result> LastModerationResult { get; private set; } = new List<Result>();
-
     /// <summary>Occurs when a streaming token is received.</summary>
     public event EventHandler<StreamTokenReceivedEventArgs>? StreamTokenReceived;
 
     /// <summary>Creates a new <see cref="ChatManager"/> instance with
     /// the <paramref name="apis"/> and <paramref name="options"/> provided.</summary>
-    /// <param name="apis">The <see cref="OpenAIApis"/> instance to use for API calls.</param>
+    /// <param name="apis">The <see cref="ApiClient"/> instance to use for API calls.</param>
     /// <param name="options">The options to use for the chat session. If
     /// <see langword="null"/>, the default options
     /// will be used in calls to the API.</param>
@@ -52,28 +49,28 @@ public class ChatManager
         : this(apis, options.Model, options.Temperature, options.MaxTokens, options.NumPrompts) { }
 
     /// <summary>Creates a new <see cref="ChatManager"/> instance with the
-    /// <paramref name="apis"/>, <paramref name="model"/>,
+    /// <paramref name="apiClient"/>, <paramref name="model"/>,
     /// <paramref name="temperature"/>, <paramref name="maxTokens"/>, and
     /// <paramref name="numPrompts"/> provided.</summary>
-    /// <param name="apis">The <see cref="OpenAIApis"/> instance to use for API calls.</param>
+    /// <param name="apiClient">The <see cref="ApiClient"/> instance to use for API calls.</param>
     /// <param name="model">
     /// <para>The <see cref="KnownChatCompletionModel"/> that establishes the model used by the
     /// <see cref="BpeTokenizer.Encoder"/> to handle tokenization.</para>
     /// <para>Tokenization is key to tracking cost as the OpenAI API uses the same
     /// tokenization process.</para></param>
-    /// <param name="temperature"><para>The <see cref="CompletionParameters.Temperature"/>
+    /// <param name="temperature"><para>The <see cref="ChatCompletionParameters.Temperature"/>
     /// to use for the chat session.</para><para>Can be changed later by 
     /// calling <see cref="ChangeTemperature(double)"/>.</para></param>
     /// <param name="maxTokens">
-    /// <para>The <see cref="CompletionParameters.MaxTokens"/> to use for the chat session.</para>
+    /// <para>The <see cref="ChatCompletionParameters.MaxTokens"/> to use for the chat session.</para>
     /// <para>Can be changed later by calling <see cref="ChangeMaxTokens(int)"/>.</para>
     /// </param>
-    /// <param name="numPrompts"><para>The <see cref="CompletionParameters.NumPrompts"/> to use for the chat session.</para>
+    /// <param name="numPrompts"><para>The <see cref="ChatCompletionParameters.NumPrompts"/> to use for the chat session.</para>
     /// <para>Can be changed later by calling <see cref="ChangeNumPrompts(int)"/>.</para></param>
-    public ChatManager(ApiClient apis, KnownChatCompletionModel model, double? temperature = null, int? maxTokens = null, int? numPrompts = null)
+    public ChatManager(ApiClient apiClient, KnownChatCompletionModel model, double? temperature = null, int? maxTokens = null, int? numPrompts = null)
     {
-        this.OpenAIApis = apis;
-        this.Parameters = new CompletionParameters(model.GetModelName(), temperature, maxTokens, numPrompts);
+        this.ApiClient = apiClient;
+        this.Parameters = new ChatCompletionParameters(model.GetModelName(), temperature, maxTokens, numPrompts);
     }
 
     /// <summary><para>Posts a user role message to the <see cref="Parameters"/>,
@@ -93,31 +90,47 @@ public class ChatManager
     /// <returns><para>A <see cref="ResponseWithCostAndModeration"/> instance that represents the response from the API.</para></returns>
     public async Task<ResponseWithCostAndModeration> PostAsync(CancellationToken cancellationToken = default)
     {
-        ModerationResponse? inputModeration = null;
         if (this.IsModerated)
         {
-            var finalMessage = this.Parameters.Messages.LastOrDefault();
-            if (!(finalMessage?.Moderated ?? true)
-                && !string.IsNullOrWhiteSpace(finalMessage!.Content))
-                try
-                {
-                    var moderationParameters = new ModerationParameters(finalMessage!.Content);
-                    inputModeration = await this.OpenAIApis.ModerateAsync(moderationParameters, cancellationToken);
-                }
-                catch (Exception moderationException)
-                {
-                    /// If moderation fails and it's a moderated <see cref="ChatManager"/> instance,
-                    /// we should fail the API call.
-                    return new ResponseWithCostAndModeration
-                           ( CompletionResponse.EmptyResponse
-                           , inputCost: 0
-                           , outputCost: 0)
-                           { IsSuccess = false
-                           , Exception = moderationException };
-                }
+            var inputsToModerate = 
+                this.Parameters.Messages.Where(x => x.ModerationResponse == null || !x.ModerationResponse.IsSuccess)
+                .ToArray();
+            foreach (var finalMessage in inputsToModerate)
+            {
+                if (!string.IsNullOrWhiteSpace(finalMessage!.Content))
+                    try
+                    {
+                        var moderationParameters = new ModerationParameters(finalMessage!.Content);
+                        finalMessage.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
+                    }
+                    catch (Exception moderationException)
+                    {
+                        /// If moderation fails and it's a moderated <see cref="ChatManager"/> instance,
+                        /// we should fail the API call.
+                        return new ResponseWithCostAndModeration
+                               ( ChatCompletionResponse.EmptyResponse
+                               , inputCost: 0
+                               , outputCost: 0)
+                               { IsSuccess = false
+                               , Exception = moderationException };
+                    }
+            }
+            var hasFlaggedModerations =
+                inputsToModerate
+                .Any(x => x.ModerationResponse != null 
+                       && x.ModerationResponse.IsSuccess
+                       && x.ModerationResponse.IsFlagged);
+            if (hasFlaggedModerations)
+                return new ResponseWithCostAndModeration
+                        ( ChatCompletionResponse.EmptyResponse
+                        , inputCost: 0
+                        , outputCost: 0)
+                        { IsSuccess = false
+                        , ErrorMessage = $"One or more {nameof(Message)}s were flagged by the moderation API. See the {nameof(Message.ModerationResponse)} from the {nameof(this.Parameters)}.{nameof(ChatCompletionParameters.Messages)}." };
+            
         }
 
-        var response = await this.OpenAIApis.CallChatAsync(this.Parameters, inputModeration, cancellationToken);
+        var response = await this.ApiClient.CallChatAsync(this.Parameters, this.IsModerated, cancellationToken);
         if (response.IsSuccess
             && response.Choices != null)
         {
@@ -143,20 +156,66 @@ public class ChatManager
     /// <summary>
     /// <para>Posts the <see cref="Parameters"/> to the OpenAI Chat Completion
     /// API as a streaming request and returns the response as an <see cref="IAsyncEnumerable{T}"/>.</para>
-    /// <para>If <see cref="CompletionParameters.NumPrompts"/> is 1, the first
-    /// response will be added to <see cref="CompletionParameters.Messages"/>.</para>
-    /// <para>Otherwise, no response will be added to <see cref="CompletionParameters.Messages"/>.
+    /// <para>If <see cref="ChatCompletionParameters.NumPrompts"/> is 1, the first
+    /// response will be added to <see cref="ChatCompletionParameters.Messages"/>.</para>
+    /// <para>Otherwise, no response will be added to <see cref="ChatCompletionParameters.Messages"/>.
     /// </para><para>To receive token-wise updates, register a handler to the
     /// <see cref="StreamTokenReceived"/> event.</para></summary>
     /// <param name="cancellationToken"><para>The <see cref="CancellationToken"/> to use for the API call.</para></param>
     /// <returns><para>An <see cref="IAsyncEnumerable{T}"/> that represents the response from the API.</para>
     /// <para>Each item in the enumerable represents a prompt response.</para>
     /// <para>The number of items returned from this method relates to the
-    /// <see cref="CompletionParameters.NumPrompts"/> specified in <see cref="Parameters"/>.</para></returns>
-    public async IAsyncEnumerable<string> PostStreamingAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    /// <see cref="ChatCompletionParameters.NumPrompts"/> specified in <see cref="Parameters"/>.</para></returns>
+    public async IAsyncEnumerable<StreamingResponseWithCostAndModeration> PostStreamingAsync
+        ( [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var response = OpenAIApis.CallChatStreamingAsync(this.Parameters, cancellationToken);
-        var builders = new Dictionary<int, StringBuilder>();
+        if (this.IsModerated)
+        {
+            var inputsToModerate = 
+                this.Parameters.Messages.Where(x => x.ModerationResponse == null || !x.ModerationResponse.IsSuccess)
+                .ToArray();
+            foreach (var finalMessage in inputsToModerate)
+            {
+                Exception? capturedModerationException = null;
+                if (!string.IsNullOrWhiteSpace(finalMessage!.Content))
+                    try
+                    {
+                        var moderationParameters = new ModerationParameters(finalMessage!.Content);
+                        finalMessage.ModerationResponse = await this.ApiClient.ModerateAsync(moderationParameters, cancellationToken);
+                    }
+                    catch (Exception moderationException)
+                    {
+                        capturedModerationException = moderationException;
+                    }
+                if (capturedModerationException != null)
+                {
+                    /// If moderation fails, and it's a moderated <see cref="ChatManager"/> instance,
+                    /// we should fail the API call.
+                    yield return
+                        new StreamingResponseWithCostAndModeration
+                        { IsSuccess = false
+                        , Exception = capturedModerationException };
+                    yield break;
+                }
+            }
+            var hasFlaggedModerations =
+                inputsToModerate
+                .Any(x => x.ModerationResponse != null 
+                       && x.ModerationResponse.IsSuccess
+                       && x.ModerationResponse.IsFlagged);
+            if (hasFlaggedModerations)
+            {
+                yield return
+                    new StreamingResponseWithCostAndModeration()
+                    { IsSuccess = false
+                    , ErrorMessage = $"One or more {nameof(Message)}s were flagged by the moderation API. See the {nameof(Message.ModerationResponse)} from the {nameof(this.Parameters)}.{nameof(ChatCompletionParameters.Messages)}." };
+                yield break;
+            }
+            
+        }
+
+        var response = ApiClient.CallChatStreamingAsync(this.Parameters, cancellationToken);
+        var builders = new Dictionary<int, (StringBuilder builder, decimal cost)>();
         bool wasNoCost = false;
         await foreach (var output in response)
         {
@@ -174,17 +233,24 @@ public class ChatManager
             {
                 if (choice == null)
                     continue;
-                if (!builders.TryGetValue(choice.Index, out var builder))
+                StringBuilder builder;
+                decimal currentCost;
+                if (!builders.TryGetValue(choice.Index, out var builderWithCost))
                 {
-                    builder = new StringBuilder();
-                    builders.Add(choice.Index, builder);
+                    (builder, currentCost) = builderWithCost = (new StringBuilder(), 0);
+                    builders.Add(choice.Index, builderWithCost);
                 }
+                else
+                    (builder, currentCost) = builderWithCost;
+
                 if (choice.Delta != null)
                 {
                     builder.Append(choice.Delta.Content);
                     var parameters = new StreamTokenReceivedEventArgs(choice.Delta.Content, choice.Index);
                     this.OnStreamTokenReceived(parameters);
-                    this.OutputCost += await parameters.GetOutputCostAsync(this);
+                    var currentSegmentCost = await parameters.GetOutputCostAsync(this);
+                    builders[choice.Index] = (builder, currentCost + currentSegmentCost);
+                    this.OutputCost += currentSegmentCost;
                 }
             }
         }
@@ -196,11 +262,41 @@ public class ChatManager
             var firstChoice = builders.First().Value.ToString();
             this.Parameters.Messages.Add
                 ( new Message
-                  { Role = "assistant"
+                  { Role    = "assistant"
                   , Content = firstChoice });
         }
-        foreach (var stringBuilder in builders)
-            yield return stringBuilder.Value.ToString();
+
+        foreach (var key in builders.Keys)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                yield break;
+            var (builder, currentCost) = builders[key];
+            var completion = builder.ToString();
+            var moderationParams = new ModerationParameters(completion);
+            ModerationResponse? completionModeration;
+            if (this.IsModerated)
+                try
+                {
+                    completionModeration = await this.ApiClient.ModerateAsync(moderationParams, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    completionModeration = 
+                        new ModerationResponse
+                        { IsSuccess = false
+                        , Exception = e };
+                }
+            else
+                completionModeration = null;
+            if (cancellationToken.IsCancellationRequested)
+                yield break;
+            yield return 
+                new StreamingResponseWithCostAndModeration
+                { Completion        = completion
+                , OutputCost        = currentCost
+                , Index             = key
+                , OutputModeration  = completionModeration };
+        }
     }
 
     /// <summary><para>Posts a user role message to the <see cref="Parameters"/>,
@@ -214,8 +310,8 @@ public class ChatManager
     /// <returns><para>An <see cref="IAsyncEnumerable{T}"/> that represents the response from the API.</para>
     /// <para>Each item in the enumerable represents a prompt response.</para>
     /// <para>The number of items returned from this method relates to the
-    /// <see cref="CompletionParameters.NumPrompts"/> specified in <see cref="Parameters"/>.</para></returns>
-    public async IAsyncEnumerable<string> PostStreamingUserMessageAsync(string message, [EnumeratorCancellation]CancellationToken cancellationToken = default)
+    /// <see cref="ChatCompletionParameters.NumPrompts"/> specified in <see cref="Parameters"/>.</para></returns>
+    public async IAsyncEnumerable<StreamingResponseWithCostAndModeration> PostStreamingUserMessageAsync(string message, [EnumeratorCancellation]CancellationToken cancellationToken = default)
     {
         this.Parameters.Messages.Add(new Message { Content = message, Role = "user" });
         // Use the async enumerable to ensure the EnumeratorCancellation attribute
@@ -254,33 +350,33 @@ public class ChatManager
     public void ChangeTemperature(double temperature)
     {
         var oldParameters   = this.Parameters;
-        this.Parameters     = new CompletionParameters(oldParameters.Model, temperature, oldParameters.MaxTokens, oldParameters.NumPrompts);
+        this.Parameters     = new ChatCompletionParameters(oldParameters.Model, temperature, oldParameters.MaxTokens, oldParameters.NumPrompts);
         this.Parameters.Messages.AddRange(oldParameters.Messages);
     }
     
     /// <summary><para>Changes the maximum number of tokens of the <see cref="Parameters"/>,
     /// but retains the other traits of the <see cref="Parameters"/>.</para>
-    /// <para><see cref="CompletionParameters.MaxTokens"/> identify the maximum number of tokens
+    /// <para><see cref="ChatCompletionParameters.MaxTokens"/> identify the maximum number of tokens
     /// the API should generate for the output.</para></summary>
     /// <param name="maxTokens"><para>The maximum number of tokens
     /// the API should generate for the output.</para></param>
     public void ChangeMaxTokens(int maxTokens)
     {
         var oldParameters   = this.Parameters;
-        this.Parameters     = new CompletionParameters(oldParameters.Model, oldParameters.Temperature, maxTokens, oldParameters.NumPrompts);
+        this.Parameters     = new ChatCompletionParameters(oldParameters.Model, oldParameters.Temperature, maxTokens, oldParameters.NumPrompts);
         this.Parameters.Messages.AddRange(oldParameters.Messages);
     }
 
     /// <summary><para>Changes the number of prompts of the <see cref="Parameters"/>,
     /// but retains the other traits of the <see cref="Parameters"/>.</para>
-    /// <para><see cref="CompletionParameters.NumPrompts"/> identify the number
+    /// <para><see cref="ChatCompletionParameters.NumPrompts"/> identify the number
     /// of prompts the API should generate for the output for the same input.</para></summary>
     /// <param name="numPrompts"><para>The maximum number of prompts
     /// the API should generate in the output.</para></param>
     public void ChangeNumPrompts(int numPrompts)
     {
         var oldParameters   = this.Parameters;
-        this.Parameters     = new CompletionParameters(oldParameters.Model, oldParameters.Temperature, oldParameters.MaxTokens, numPrompts);
+        this.Parameters     = new ChatCompletionParameters(oldParameters.Model, oldParameters.Temperature, oldParameters.MaxTokens, numPrompts);
         this.Parameters.Messages.AddRange(oldParameters.Messages);
     }
 
@@ -295,7 +391,7 @@ public class ChatManager
     public void ChangeParameters(double? temperature = null, int? maxTokens = null, int? numPrompts = null)
     {
         var oldParameters   = this.Parameters;
-        this.Parameters     = new CompletionParameters(oldParameters.Model, temperature, maxTokens, numPrompts);
+        this.Parameters     = new ChatCompletionParameters(oldParameters.Model, temperature, maxTokens, numPrompts);
         this.Parameters.Messages.AddRange(oldParameters.Messages);
     }
 

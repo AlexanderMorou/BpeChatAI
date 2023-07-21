@@ -19,7 +19,7 @@ public class Parameters
     /// <param name="maxTokens"></param>
     /// <param name="numPrompts"></param>
     public Parameters
-        (string model
+        ( string model
         , double? temperature = null
         , int? maxTokens = null
         , int? numPrompts = null)

@@ -15,9 +15,9 @@ using BpeChatAI.OpenAI.Models;
 using BpeChatAI.OpenAI.ChatCompletions;
 using BpeChatAI.OpenAI.Moderation;
 using ModerationResponse = BpeChatAI.OpenAI.Moderation.Response;
-using CompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
+using ChatCompletionResponse = BpeChatAI.OpenAI.ChatCompletions.Response;
 
-using CompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
+using ChatCompletionParameters = BpeChatAI.OpenAI.ChatCompletions.Parameters;
 using ModerationParameters = BpeChatAI.OpenAI.Moderation.Parameters;
 namespace BpeChatAI.OpenAI;
 
@@ -165,18 +165,17 @@ public partial class ApiClient
 
     /// <summary><para>Calls the OpenAI chat completion endpoint with the <paramref name="parameters"/> and
     /// <paramref name="cancellationToken"/> provided.</para><para>Explicitly sets
-    /// <see cref="CompletionParameters.Stream"/> to <see langword="false"/>.</para></summary>
-    /// <param name="parameters">The <see cref="CompletionParameters"/> which detail the request 
+    /// <see cref="ChatCompletionParameters.Stream"/> to <see langword="false"/>.</para></summary>
+    /// <param name="parameters">The <see cref="ChatCompletionParameters"/> which detail the request 
     /// to be made.</param>
-    /// <param name="inputModeration"><para>The <see cref="ModerationResponse"/> to associate with
-    /// this request.</para></param>
+    /// <param name="moderateCompletions"><para>Whether or not to moderate the chat completions.</para></param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> which can be used to
     /// cancel the request.</param>
     /// <returns><para>A <see cref="ResponseWithCostAndModeration"/> which contains the
     /// <see cref="ChatCompletions.Response"/> and the cost of the request.</para></returns>
     public async Task<ResponseWithCostAndModeration> CallChatAsync
-        ( CompletionParameters parameters
-        , ModerationResponse? inputModeration = null
+        ( ChatCompletionParameters parameters
+        , bool moderateCompletions
         , CancellationToken cancellationToken = default)
     {
         if (parameters == null)
@@ -225,7 +224,7 @@ public partial class ApiClient
             // If we have an input moderation, we need to moderate the output
             // choices as well. Users of this library can choose how they respond
             // to the moderation results.
-            if (inputModeration != null && completionResponse.IsSuccess)
+            if (moderateCompletions && completionResponse.IsSuccess)
             {
                 var outputModerations = new Dictionary<int, ModerationResponse>();
                 if (completionResponse.Choices != null)
@@ -238,16 +237,16 @@ public partial class ApiClient
                                 outputModerations.Add(choice.Index, outputModerationResponse);
                         }
 
-                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost, inputModeration, outputModerations);
+                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost, outputModerations);
             }
             else
-                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost, inputModeration);
+                return new ResponseWithCostAndModeration(completionResponse, inputCost, outputCost);
         }
         catch (Exception e)
         {
             var inputCost = await parameters.GetInputCostAsync();
             return new ResponseWithCostAndModeration
-                ( new ChatCompletions.Response
+                ( new ChatCompletionResponse
                     { IsSuccess = false
                     , Exception = e }
                 , inputCost, outputCost: 0);
@@ -255,9 +254,24 @@ public partial class ApiClient
     }
 
     /// <summary><para>Calls the OpenAI chat completion endpoint with the <paramref name="parameters"/> and <paramref name="cancellationToken"/> provided.</para>
-    /// <para>Explicitly sets <see cref="CompletionParameters.Stream"/> to <see langword="true"/>.</para></summary>
+    /// <para>Explicitly sets <see cref="ChatCompletionParameters.Stream"/> to <see langword="true"/>.</para>
+    /// <para>Moderation is not supported for this endpoint implementation due to the streaming nature. It is left
+    /// as an exercise to the caller.</para></summary>
+    /// <param name="parameters">The <see cref="ChatCompletionParameters"/> which detail the request
+    /// to be made.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> which can be used to
+    /// cancel the request.</param>
+    /// <returns><para>An <see cref="IAsyncEnumerable{T}"/> of <see cref="StreamResponse"/> which
+    /// contains individual <see cref="ChatCompletions.Response"/>s as they are received from the
+    /// server.</para>
+    /// <para>Each response represents roughly a token.
+    /// <see cref="StreamResponseChoice.FinishReason"/> for an indicator of why the
+    /// <see cref="IAsyncEnumerable{T}"/> is finished.</para></returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parameters"/> is
+    /// <see langword="null"/>.</exception>
+    /// 
     public async IAsyncEnumerable<StreamResponse> CallChatStreamingAsync
-        ( CompletionParameters parameters
+        ( ChatCompletionParameters parameters
         , [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (parameters == null)
@@ -317,7 +331,7 @@ public partial class ApiClient
                         {
                             yieldExceptionState = true;
                             exceptionalState = e;
-                            goto yieldFailInsideUsing;
+                            goto yieldFail;
                         }
 
                         if (currentLine == "data: [DONE]"
@@ -325,6 +339,7 @@ public partial class ApiClient
                             break;
                         if (currentLine == string.Empty)
                             continue;
+                        // Tweak the currentLine so it's deserializeable as JSON.
                         currentLine = $"{{{currentLine}}}";
                         // statement blocks vs single statement because of goto.
                         using (var textReader = new StringReader(currentLine))
@@ -344,14 +359,14 @@ public partial class ApiClient
                             }
                         }
                     }
-                    yieldFailInsideUsing:;
                 }
             }
             else
                 yield return new StreamResponse
                              { IsSuccess = false, ErrorMessage = $"Error: {response.StatusCode}" };
         }
-        yieldFail:
+        // A necessary evil, since you cannot yield in a try block.
+        yieldFail: 
         if (yieldExceptionState)
             yield return new StreamResponse
             { IsSuccess = false, Exception = exceptionalState, ErrorOnRequest = errorOnRequest };
@@ -364,7 +379,7 @@ public partial class ApiClient
     /// used to cancel the request.</para></param>
     /// <returns><para>A moderation response from the OpenAI API, possibly null.</para></returns>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
-    public async Task<ModerationResponse?> ModerateAsync
+    public async Task<ModerationResponse> ModerateAsync
         ( ModerationParameters input
         , CancellationToken cancellationToken = default)
     {

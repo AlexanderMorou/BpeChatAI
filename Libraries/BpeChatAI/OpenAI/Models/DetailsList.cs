@@ -8,6 +8,7 @@ namespace BpeChatAI.OpenAI.Models;
 /// flattened into a list without the need for a "Data" property.</para></summary>
 public class DetailsList
     : List<Details>
+    , IApiResponseWithSuccessInformation
 {
     /// <summary>
     /// <para>Gets or sets the success status of the request.</para>
