@@ -312,7 +312,8 @@ public class ChatManager
                 { Completion        = completion
                 , OutputCost        = currentCost
                 , Index             = key
-                , OutputModeration  = completionModeration };
+                , OutputModeration  = completionModeration
+                , IsSuccess         = true };
         }
     }
 

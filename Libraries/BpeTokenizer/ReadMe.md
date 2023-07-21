@@ -127,7 +127,7 @@ var gpt2Encoder                     = await BytePairEncodingModels.EncodingForMo
 ```
 
 Several of the older models are being deprecated at the start of 2024:
-* [Model meprecation information](https://openai.com/blog/gpt-4-api-general-availability#deprecation-of-older-models-in-the-completions-api)
+* [Model deprecation information](https://openai.com/blog/gpt-4-api-general-availability#deprecation-of-older-models-in-the-completions-api)
 
 ## Token Counting
 To count tokens in a given string, you can use the following:

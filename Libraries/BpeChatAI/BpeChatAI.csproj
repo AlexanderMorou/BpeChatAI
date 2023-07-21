@@ -6,14 +6,14 @@
         <Nullable>enable</Nullable>
         <Platforms>x64</Platforms>
         <PackageId>BpeChatAI</PackageId>
-        <Version>1.0.4</Version>
+        <Version>1.0.6</Version>
         <Authors>Allen Clark Copeland, Jr.</Authors>
         <Product>BpeChatAI</Product>
         <Configurations>Debug;Release;ReleaseWithNuget</Configurations>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/AlexanderMorou/BpeChatAI</RepositoryUrl>
         <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
-        <PackageReleaseNotes>Implemented moderation in the ChatManager. Refactored `CompletionResponseWithCost` to be `CompletionResponseWithCostAndModeration`.</PackageReleaseNotes>
+        <PackageReleaseNotes>Fixing silly bug in ChatManager which failed to set `IsSuccess` to `true` as appropriate. This made outputs appear to always fail.</PackageReleaseNotes>
         <PackageTags>BytePairEncoding;BPE;OpenAI;GPT-3.5;GPT-4;.NET;GPT3.5;GPT4;GPT35</PackageTags>
         <IncludeSymbols>True</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -30,7 +30,7 @@
         <ProjectReference Include="..\BpeTokenizer\BpeTokenizer.csproj" />
     </ItemGroup>
     <ItemGroup Condition=" '$(Configuration)'=='ReleaseWithNuget' ">
-        <PackageReference Include="BpeTokenizer" Version="1.0.4" />
+        <PackageReference Include="BpeTokenizer" Version="1.0.5" />
     </ItemGroup>
     <ItemGroup>
       <None Include="..\..\.editorconfig" Link=".editorconfig" />

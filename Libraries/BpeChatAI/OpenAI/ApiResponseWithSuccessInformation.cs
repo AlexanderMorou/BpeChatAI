@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ public class ApiResponseWithSuccessInformation
 {
     /// <summary>Gets or sets whether the response was successful or not.</summary>
     [JsonIgnore()]
-    public bool IsSuccess { get; set; }
+    public virtual bool IsSuccess { get; set; }
 
     /// <summary>Gets or sets the error message if there was an error in the response.</summary>
     [JsonIgnore()]
