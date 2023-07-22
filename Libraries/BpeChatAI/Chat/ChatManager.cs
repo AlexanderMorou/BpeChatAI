@@ -211,6 +211,7 @@ public class ChatManager
                         new StreamingResponseWithCostAndModeration
                         { IsSuccess = false
                         , Exception = capturedModerationException };
+                        , ErrorMessage  = inputToModerate.ModerationResponse?.ErrorMessage };
                     yield break;
                 }
             }
