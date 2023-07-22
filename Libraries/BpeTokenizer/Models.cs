@@ -7,7 +7,7 @@ using static BpeTokenizer.EncodingRegistry;
 namespace BpeTokenizer;
 
 /// <summary>This class contains the model names and their corresponding encodings.</summary>
-public class Models
+public static class Models
 {
     // TODO: The original source says these will likely be replaced by an API endpoint.
     // Once that happens, we can remove these dictionaries.

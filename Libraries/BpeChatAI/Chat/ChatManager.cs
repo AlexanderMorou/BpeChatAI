@@ -203,14 +203,15 @@ public class ChatManager
                     {
                         capturedModerationException = moderationException;
                     }
-                if (capturedModerationException != null)
+                if (capturedModerationException != null
+                    || !(inputToModerate.ModerationResponse?.IsSuccess ?? false))
                 {
                     /// If moderation fails, and it's a moderated <see cref="ChatManager"/> instance,
                     /// we should fail the API call.
                     yield return
                         new StreamingResponseWithCostAndModeration
-                        { IsSuccess = false
-                        , Exception = capturedModerationException };
+                        { IsSuccess     = false
+                        , Exception     = capturedModerationException
                         , ErrorMessage  = inputToModerate.ModerationResponse?.ErrorMessage };
                     yield break;
                 }

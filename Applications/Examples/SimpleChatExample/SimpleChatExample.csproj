@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+    <ItemGroup Condition=" '$(Configuration)'=='ReleaseWithNuget' ">
+        <PackageReference Include="BpeChatAI" Version="1.0.6" />
+        <PackageReference Include="BpeTokenizer" Version="1.0.5" />
+    </ItemGroup>
+    <ItemGroup Condition=" '$(Configuration)'!='ReleaseWithNuget' ">
+      <ProjectReference Include="..\..\..\Libraries\BpeChatAI\BpeChatAI.csproj" />
+      <ProjectReference Include="..\..\..\Libraries\BpeTokenizer\BpeTokenizer.csproj" />
+    </ItemGroup>
+</Project>
